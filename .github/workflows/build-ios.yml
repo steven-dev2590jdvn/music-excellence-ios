@@ -1,41 +1,38 @@
 name: Build iOS App
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-    - name: Install Capacitor CLI
-      run: npm install -g @capacitor/cli
+      - name: Install Capacitor & dependencies
+        run: |
+          npm init -y
+          npm install @capacitor/cli
+          npx cap init "Music Excellence" com.yourname.musicexcellence --web-dir=.
+          npm install
+          npx cap add ios
 
-    - name: Initialize Capacitor
-      run: |
-        npx cap init "Music Excellence" com.example.musicexcellence --web-dir=www
+      - name: Build IPA
+        run: |
+          cd ios/App
+          xcodebuild -scheme App -sdk iphoneos -configuration Release archive -archivePath $PWD/build/App.xcarchive
+          xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath $PWD/build/ipa
 
-    - name: Add iOS Platform
-      run: npx cap add ios
-
-    - name: Build iOS project
-      run: |
-        cd ios
-        xcodebuild -scheme App -sdk iphoneos -configuration Release archive -archivePath ${{ github.workspace }}/build/MusicExcellence.xcarchive
-
-    - name: Export IPA
-      run: |
-        xcodebuild -exportArchive -archivePath ${{ github.workspace }}/build/MusicExcellence.xcarchive -exportPath ${{ github.workspace }}/build/export -exportOptionsPlist ios/App/exportOptions.plist
-
-    - name: Upload IPA
-      uses: actions/upload-artifact@v3
-      with:
-        name: MusicExcellence.ipa
-        path: build/export
+      - name: Upload IPA
+        uses: actions/upload-artifact@v3
+        with:
+          name: MusicExcellence
+          path: ios/App/build/ipa
