@@ -1,0 +1,41 @@
+name: Build iOS App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Install Capacitor CLI
+      run: npm install -g @capacitor/cli
+
+    - name: Initialize Capacitor
+      run: |
+        npx cap init "Music Excellence" com.example.musicexcellence --web-dir=www
+
+    - name: Add iOS Platform
+      run: npx cap add ios
+
+    - name: Build iOS project
+      run: |
+        cd ios
+        xcodebuild -scheme App -sdk iphoneos -configuration Release archive -archivePath ${{ github.workspace }}/build/MusicExcellence.xcarchive
+
+    - name: Export IPA
+      run: |
+        xcodebuild -exportArchive -archivePath ${{ github.workspace }}/build/MusicExcellence.xcarchive -exportPath ${{ github.workspace }}/build/export -exportOptionsPlist ios/App/exportOptions.plist
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v3
+      with:
+        name: MusicExcellence.ipa
+        path: build/export
